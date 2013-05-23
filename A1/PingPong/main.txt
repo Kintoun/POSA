@@ -1,0 +1,91 @@
+// POSA Assignment 1.
+// I went with a Semaphore since that is the easiest way to alternate processing
+// between 2 threads. Purely academic. I wouldn't want to create an entire
+// infrastructure or framework for something so simple.
+
+// Build instructions:
+//		Rename from main.txt to main.cpp
+//		Open Visual Studio 2012 Command Prompt
+//		cd to file
+//		run: cl /EHsc main.cpp
+
+#include <iostream>
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+// A simple non-count Sempahore.
+class SimpleSemaphore
+{
+public:
+	void Wait()
+	{
+		std::unique_lock<std::mutex> lock(m);
+		cv.wait(lock);
+	}
+
+	void Notify()
+	{
+		std::lock_guard<std::mutex> scopedLock(m);
+		cv.notify_all();
+	}
+
+private:
+	std::mutex m;
+	std::condition_variable cv;
+};
+
+SimpleSemaphore g_semaphore;
+
+void pingThread()
+{
+	// 1st
+	std::cout << "Ping!" << std::endl;	
+	g_semaphore.Notify();
+	
+	// 3rd
+	g_semaphore.Wait();
+	std::cout << "Ping!" << std::endl;
+	g_semaphore.Notify();
+
+	// 5th
+	g_semaphore.Wait();
+	std::cout << "Ping!" << std::endl;
+	g_semaphore.Notify();
+}
+
+void pongThread()
+{	
+	// 2nd
+	g_semaphore.Wait();
+	std::cout << "Pong!" << std::endl;
+	g_semaphore.Notify();
+
+	// 4th
+	g_semaphore.Wait();
+	std::cout << "Pong!" << std::endl;
+	g_semaphore.Notify();
+
+	// 6th
+	g_semaphore.Wait();
+	std::cout << "Pong!" << std::endl;
+	g_semaphore.Notify();
+}
+
+int main()
+{
+	std::cout << "Ready... Set... Go!" << std::endl << std::endl;
+
+    std::thread ping(pingThread);
+	std::thread pong(pongThread);
+	ping.join();
+    pong.join();
+
+	std::cout << "Done!" << std::endl;
+
+	// WINDOWS ONLY!
+	system("pause");
+
+    return 0;
+}
